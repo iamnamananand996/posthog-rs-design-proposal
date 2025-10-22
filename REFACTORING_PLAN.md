@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines a comprehensive refactoring plan for the PostHog Rust SDK to improve modularity, maintainability, and testability. The codebase is currently ~853 lines of well-organized code, but there are opportunities to reduce duplication and improve separation of concerns.
+This document outlines a refactoring plan for the PostHog Rust SDK to improve modularity, maintainability, and testability. The codebase is currently well-organized code, but there are opportunities to reduce duplication and improve separation of concerns and help to extend further features.
 
 ## Current Codebase Analysis
 
@@ -11,19 +11,19 @@ This document outlines a comprehensive refactoring plan for the PostHog Rust SDK
 ```
 posthog-rs/
 ├── src/
-│   ├── lib.rs                 (26 lines)     - Main library entry point
-│   ├── error.rs               (23 lines)     - Error type definitions
-│   ├── event.rs               (217 lines)    - Event data structures
-│   ├── global.rs              (67 lines)     - Global singleton client
+│   ├── lib.rs                              - Main library entry point
+│   ├── error.rs                            - Error type definitions
+│   ├── event.rs                            - Event data structures
+│   ├── global.rs                           - Global singleton client
 │   └── client/
-│       ├── mod.rs             (35 lines)     - Client options
-│       ├── blocking.rs        (63 lines)     - Synchronous HTTP client
-│       └── async_client.rs    (65 lines)     - Asynchronous HTTP client
+│       ├── mod.rs                          - Client options
+│       ├── blocking.rs                     - Synchronous HTTP client
+│       └── async_client.rs                 - Asynchronous HTTP client
 ├── tests/
-│   └── test.rs                (24 lines)     - Integration tests
-├── Cargo.toml                               - Package manifest
-├── README.md                                - Documentation
-└── CHANGELOG.md                             - Release notes
+│   └── test.rs                             - Integration tests
+├── Cargo.toml                              - Package manifest
+├── README.md                               - Documentation
+└── CHANGELOG.md                            - Release notes
 ```
 
 ### Key Strengths
