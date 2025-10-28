@@ -1,5 +1,15 @@
 # Deep Analysis: PostHog Python SDK Context Implementation
 
+Olly - will just put takeaways at the top here. Like the overall approach. You can skip error tracking support for now, which makes up a lot of the considerations here - we'd take it as a seperate project (and likely will if this works out). My key bits are:
+- The library has to be thread-safe and async-compatible, and needs to dynamically switch which kind of context var it's using - even if someones using the blocking client in an async project, the library should behave correctly.
+- I like the guard approach for handling context construction and teardown - we can skip the wrappers and so on, it's not worth the trouble right now.
+- I appreciate the detailed analysis here
+- I like the idea of extending to include web frameworks - we should do it, but for now we should focus on the core functionality.
+- Testing and docs are extremely valuable. My overall take here is to do this in 3 weeks, skip web frameworks and error handling, and get the core documented and in peoples hands ASAP.
+- Internally, we should just use serde_json::Value for the property values, and we should expose interfaces that accept anything that's serde::Serialize.
+- Contexts are one place where performance is somewhat important - we can expect people to frequently enter one without capturing any events, so we should be mindful of performance implications with our implementation. Pushing tags
+  and entering/existing contexts needs to be fast, but collecting context tags and capturing events can still be a bit slower (so the linked list/tree approach is fine for now I think).
+- As above, the context implementation needs to handle stuff like tokio::spawn, so is maybe closer to a tree than a list - we can take this in code review though
 ## Executive Summary
 
 This document provides a comprehensive analysis of the PostHog Python SDK's context implementation, focusing on how it can be adapted to Rust for the posthog-rs SDK. The Python implementation uses `contextvars` for thread-safe, async-compatible context management with hierarchical tag inheritance.

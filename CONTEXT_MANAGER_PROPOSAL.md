@@ -1,4 +1,6 @@
-# Context Manager for posthog-rs
+Olly - this has a lot of overlap with the python analysis, see comments there.
+
+ Context Manager for posthog-rs
 
 ## Overview
 Add context management to posthog-rs for automatic propagation of `distinct_id`, `session_id`, and properties through call stacks - similar to Python SDK's context system.
