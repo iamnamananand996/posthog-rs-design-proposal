@@ -1,4 +1,4 @@
-# Visual Architecture Comparison
+# Visual Architecture Comparison (Just for knowledge - NOT for external uses) 
 
 ## posthog-python Architecture
 

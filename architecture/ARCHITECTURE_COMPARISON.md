@@ -1,4 +1,4 @@
-# Architecture Comparison: posthog-python vs posthog-rs
+# Architecture Comparison: posthog-python vs posthog-rs (Just for knowledge - NOT for external uses)
 
 ## File Structure Comparison
 
