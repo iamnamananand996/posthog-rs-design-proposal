@@ -91,7 +91,7 @@ pub async fn capture(&self, event: Event) -> Result<(), Error> {
 ```rust
 // src/client/transport/mod.rs
 pub trait HttpTransport {
-    type Error;
+    type Error; // Why does this have an associated error type? What does that add? When would we need to return different errors to the client across async vs. sync code?
     fn send_request(&self, endpoint: &str, payload: String) -> Result<(), Self::Error>;
 }
 
@@ -139,6 +139,11 @@ pub struct AsyncTransport {
 impl HttpTransport for AsyncTransport {
     type Error = Error;
 
+
+// Olly: The "async" here makes no sense - this is a trait impl, you can't make it generic across async and sync, which is why the two clients need to expose duplicate interfaces.
+// Async functions are contagious - they require their callers to also be async, so you can't just write a trait that's both. The "common core" refactoring suggested here doesn't
+// make a lot of sense in that context - if there's generic data manipulation, make that common in the `event.rs` module, but the clients must expose matching interfaces in sync
+// and async contexts.
     async fn send_request(&self, endpoint: &str, payload: String) -> Result<(), Self::Error> {
         let res = self.client
             .post(format!("{}/{}", self.options.api_endpoint, endpoint))
@@ -158,6 +163,10 @@ impl HttpTransport for AsyncTransport {
 **Solution**: Separate concerns with dedicated enrichment module.
 
 ```rust
+
+// Olly: it's unclear to me what this section buys us. It seems like a lot of abstraction and boilerplate that only impacts the internal interfaces of the library, and doesn't actually
+// make anything easier for our customers. I can maybe see the notion of na EventBuilder with a simple interface (roughly the same as the current Event interface, but returning a &mut self from
+// each function to make writing `EventBuilder::new_anon().with_group().insert_prop() easier) as useful, but this `EventEnricher` stuff seems a bit oop-brained and unnecessary right now.
 // src/event/enrichment.rs
 pub trait EventEnricher {
     fn enrich(&self, properties: &mut HashMap<String, Value>);
@@ -251,6 +260,77 @@ impl EventBuilder {
 ```rust
 // src/error/mod.rs
 use std::fmt;
+/*
+Olly - I mostly agree we could be more specific with our errors, but one thing I want you to keep in mind here is:
+- 1) it's only worth being specific for errors we expect the user to act on
+- 2) I want to leak as few implementation details as possible
+
+With those goals in mind, and remembering that the Error struct is 1) non-exhaustive and 2) part of the libraries public interface,
+I propose:
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Error {
+// Existing errors for backwards compatibility, to be deprecated and then removed
+    Connection(String),
+    Serialization(String),
+    AlreadyInitialized,
+    NotInitialized,
+    InvalidTimestamp(String),
+
+// New, more granular errors, grouped as Transport, Validation and Configuration
+    Transport(TransportError),
+    Validation(ValidationError),
+    Initialization(InitializationError),
+}
+
+// Again, all of these need to be non-exhaustive
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum TransportError {
+// Taken from your enum below
+    Timeout(Duration),
+    DnsResolution(String),
+    NetworkUnreachable,
+    HttpError(StatusCode, String),
+    TlsError(String),
+}
+
+// Errors are non-exhaustive to discourage matching and writing custom handling code - we should
+// instead expose methods to let users determine what actions to take
+impl TransportError {
+    pub fn retryable() -> bool {...}
+}
+
+// We should raise ValidationError's greedily when users construct events, rather than raising Serialisation Errors -
+// if an event is valid, it must be serializable, so the error types are synonymous
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum ValidationError {
+    PropertyTooLarge { key: String, size: usize },
+    InvalidPropertyType { key: String, expected: String },
+    InvalidTimestamp(String),
+    InvalidDistinctId(String),
+    BatchSizeExceeded { size: usize, max: usize },
+    EventNameTooLong { length: usize, max: usize },
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum InitializationError {
+    MissingApiKey,
+    InvalidEndpoint(String),
+    InvalidTimeout(Duration),
+// These are used rather than the top level ones going forward
+    AlreadyInitialized,
+    NotInitialized,
+}
+
+We should also consider adopting thiserror for the error handling.
+
+ */
+
+
 
 #[derive(Debug)]
 pub enum Error {
@@ -317,6 +397,7 @@ impl std::error::Error for Error {}
 **Solution**: Add configurable limits and validation.
 
 ```rust
+// Olly - I'd just skip this, I think users can implement it if they need to, and an error from our API or our SDK mean basically the same thing. We can add it later if asked for it.
 // src/config/limits.rs
 pub struct Limits {
     pub max_batch_size: usize,
@@ -390,6 +471,7 @@ pub use endpoints::PostHogEndpoint;
 pub use limits::Limits;
 
 // src/config/endpoints.rs
+// Olly - I don't think this enum buys us anything, given "custom" is just a string anyway
 #[derive(Debug, Clone)]
 pub enum PostHogEndpoint {
     US,
@@ -421,10 +503,18 @@ pub struct ClientOptions {
     pub request_timeout: Duration,
     pub limits: Limits,
 }
+
+// olly - I actually would only change 1 thing in the config - as per https://github.com/PostHog/posthog-rs/issues/40, we should accept actual
+// host names, like "https://us.posthog.com", rather than the full API endpoint we demand currently (https://us.i.posthog.com/i/v0/e/). Right now
+// the ClientOptionsBuilder is auto-derived, and we should switch to a manual implementation that 1) does some verification and 2) handles both
+// cases being passed
 ```
 
 ## Proposed New Directory Structure
 
+ - Olly - as above, there's just too much abstraction here. Keep it simple. Client options would be part of config, you don't need "thin wrappers"
+   for the clients, and the event logic can be a single file. Config should also be a single module. Also, this includes "middleware", something you
+   discussed nowhere else in this document?
 ```
 src/
 ├── lib.rs                      # Public API and re-exports
@@ -460,22 +550,25 @@ src/
 
 ## Implementation Plan
 
+Olly - As described above, I think this doesn't make sense in the context of async code. If you want to move the serialisation logic of events into a shared module, put it in the event module, and include validation there too
 ### Phase 1: Core Refactoring
 1. Extract shared HTTP logic into transport module
 2. Create transport trait and implementations
 3. Update blocking and async clients to use new transport
 
 
-### Phase 2: Error Handling 
+### Phase 2: Error Handling
 1. Refactor error types to be more granular
 2. Update all error handling code
-3. Add error conversion traits
+3. Add error conversion traits - Use thiserror for this
 
+Olly - validation logic should live in the event module, and the limits stuff we can skip. Config module switching to a manually implemented builder, with some validation and support for both endpoint string formats, is worth doing
 ### Phase 3: Validation and Limits
 1. Add batch size validation
 2. Implement event validation
 3. Create configuration module
 
+I basically think you can skip this entirely.
 ### Phase 4: Event Enrichment
 1. Extract enrichment logic
 2. Create enricher trait and implementations
@@ -540,7 +633,7 @@ impl Middleware for RetryMiddleware {
 
 ### Immediate Benefits
 - **50% reduction in code duplication** (~60 lines eliminated)
-- **100% unit test coverage possible** with mock transport
+- **100% unit test coverage possible** with mock transport - We should test event validation and serialisation logic by moving it into the `Event` struct impl, and then skip this mock transport stuff for now.
 - **Type-safe error handling** with pattern matching
 - **Safer batch operations** with size limits
 
@@ -570,12 +663,14 @@ impl Middleware for RetryMiddleware {
 
 ## Risks and Mitigation
 
+// I actually thinks one of the more valuable things you could do here is write a set of simple tests that won't compile if the public API changes in a backwards incompatible way.
 ### Risk 1: Breaking Changes
 **Mitigation**: Keep public API stable, use deprecation warnings for any necessary changes.
 
 ### Risk 2: Increased Complexity
 **Mitigation**: Document thoroughly, provide clear examples, maintain simple public API.
 
+// Don't worry too much about this - we're making network calls anyway, benchmarking hot paths isn't particularly worth it unless we get feedback that we're shockingly slow
 ### Risk 3: Performance Regression
 **Mitigation**: Benchmark before and after, optimize hot paths, use zero-cost abstractions.
 

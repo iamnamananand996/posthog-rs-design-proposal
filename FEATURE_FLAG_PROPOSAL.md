@@ -1,3 +1,13 @@
+Olly - asked relevant team member for feedback on this. Some of it's scattered around the doc below, topline is:
+- "Basic documentation in README" – I added a bunch of documentation in the README (if anything too much documentation). I added docs + usage examples. If anything, I'd have the goal would be to copyedit the docs, but we don't need to write them fresh. This could also be a nice-to-have because the docs do exist. I would punt this in favor of implementing the $feature_flag_called events, which are the second-most important TODO behind fixing the security issues (and the security issues are easy to fix).
+- "Metrics for flag evaluations" I mention this earlier but we need this – I can't believe I missed this
+- "Exponential backoff for failed requests" need more specificity – is this for local eval poller failures, or /flags calls? if it's the former, that's fine (although IMO I think it should be configurable by the client through the config rather than a feature of the SDK), and for the latter we shouldn't do this, I never want to retry failed /flags calls.
+- "More comprehensive examples" I have a bunch in the README already; like I said earlier it really just needs a copy-edit.
+- TL;DR – fix the security holes (easy), add $feature_flag_called event semantics (medium; it's not a lot of work but it's a bit tricky, look at python or Node for examples), and make sure there's error handling on failures.
+
+
+He really highlighted the $feature_flag_called events as crucial, and that we never want to retry failed /flags calls. This is how we handle billing internally, so getting it right matters a lot.
+
 # Feature Flags Design Summary for posthog-rs
 
 ## What are PostHog Feature Flags?
@@ -43,7 +53,7 @@ Application → Client → LocalEvaluator → FlagCache
 1. **`feature_flags.rs`**: Core evaluation logic
 
    - Boolean and multivariate flags
-   - Property matching (8 operators)
+   - Property matching (8 operators) - Colleague asked that you enumerate these?
    - SHA1-based distribution
 
 2. **`local_evaluation.rs`**: Caching layer
