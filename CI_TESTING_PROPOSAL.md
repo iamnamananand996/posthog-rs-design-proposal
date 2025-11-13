@@ -9,7 +9,7 @@ Current CI workflow only tests:
 **Risk:** Feature combinations may fail to compile or have lint warnings without detection, leading to production issues.
 
 ## Current Features
-From [Cargo.toml](Cargo.toml):
+From [Cargo.toml](https://github.com/fern-demo/posthog-rs/blob/19ba132ffd3d886aa30e10f2d8293442f1c3b028/Cargo.toml#L27):
 - `default = ["async-client"]`
 - `async-client` - Asynchronous client implementation
 - `e2e-test` - End-to-end testing flag
@@ -19,7 +19,7 @@ From [Cargo.toml](Cargo.toml):
 We have two implementation approaches, each with distinct trade-offs:
 
 ### Approach 1: Sequential Testing (Simple & Direct)
-**Implementation:** Direct update to [.github/workflows/pr.yaml](.github/workflows/pr.yaml)
+**Implementation:** Direct update to [.github/workflows/pr.yaml](https://github.com/fern-demo/posthog-rs/blob/main/.github/workflows/pr.yaml)
 
 **Status:** 📝 Proposed
 
@@ -269,6 +269,5 @@ jobs:
 
 
 ## References
-- Current Implementation: [.github/workflows/pr.yaml](.github/workflows/pr.yaml)
-- Matrix Example: [.github/workflows/pr-matrix.yaml.example](.github/workflows/pr-matrix.yaml.example)
-- Features Definition: [Cargo.toml](Cargo.toml)
+- Current Implementation: [.github/workflows/pr.yaml](https://github.com/fern-demo/posthog-rs/blob/main/.github/workflows/pr.yaml)
+- Features Definition: [Cargo.toml](https://github.com/fern-demo/posthog-rs/blob/19ba132ffd3d886aa30e10f2d8293442f1c3b028/Cargo.toml#L27)
