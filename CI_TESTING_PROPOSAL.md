@@ -116,18 +116,18 @@ jobs:
 ```
 
 #### Pros:
-- ✅ Simple, easy to understand
-- ✅ Minimal changes to existing workflow
-- ✅ Clear step-by-step execution
-- ✅ Easy to debug - sequential output
-- ✅ No learning curve for team members
+- Simple, easy to understand
+- Minimal changes to existing workflow
+- Clear step-by-step execution
+- Easy to debug - sequential output
+- No learning curve for team members
 
 #### Cons:
-- ❌ Slower - runs sequentially (~15-20 minutes estimated)
-- ❌ Harder to maintain as features grow
-- ❌ Verbose YAML with repetitive steps
-- ❌ First failure stops entire pipeline
-- ❌ Cannot easily see which specific feature combo failed at a glance
+- Slower - runs sequentially (~15-20 minutes estimated)
+- Harder to maintain as features grow
+- Verbose YAML with repetitive steps
+- First failure stops entire pipeline
+- Cannot easily see which specific feature combo failed at a glance
 
 ---
 
@@ -239,19 +239,19 @@ jobs:
 ```
 
 #### Pros:
-- ✅ **40-60% faster** - Parallel execution (~6-8 minutes estimated)
-- ✅ Highly maintainable - Add features by adding one line to matrix
-- ✅ Clear separation of concerns (test/e2e/lint as separate jobs)
-- ✅ `fail-fast: false` shows all failures, not just the first
-- ✅ GitHub UI shows clean matrix visualization
-- ✅ Easy to identify which feature combo failed
-- ✅ Industry best practice for multi-configuration testing
+- **40-60% faster** - Parallel execution (~6-8 minutes estimated)
+- Highly maintainable - Add features by adding one line to matrix
+- Clear separation of concerns (test/e2e/lint as separate jobs)
+- `fail-fast: false` shows all failures, not just the first
+- GitHub UI shows clean matrix visualization
+- Easy to identify which feature combo failed
+- Industry best practice for multi-configuration testing
 
 #### Cons:
-- ❌ Slightly more complex YAML structure
-- ❌ Uses more CI minutes concurrently (may hit limits on free tier)
-- ❌ Requires understanding of GitHub Actions matrix strategy
-- ❌ More jobs to monitor in CI dashboard
+- Slightly more complex YAML structure
+- Uses more CI minutes concurrently (may hit limits on free tier)
+- Requires understanding of GitHub Actions matrix strategy
+- More jobs to monitor in CI dashboard
 
 ---
 
